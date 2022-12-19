@@ -1,0 +1,3 @@
+This is the target folder for the compiled dynamic link libraries
+Rhino python scripts will load the libraries in this folder through the use of relative paths
+This has to be considered if changes to the folder structure or folder names are made

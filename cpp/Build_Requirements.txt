@@ -1,0 +1,24 @@
+First Notes:
+- This code was developed on and for the x64 platform on Windows 10
+
+General Build Requirements:
+- Use the corresponding solution and build with Visual Studio 2019 or Visual Studio 2022
+- Needs Rhino 7 SDK installed and linked (C:\Program Files\Rhino 7 SDK\PropertySheets)
+- Needs FreeImage Library header, dll, lib in corresponding folder (Please see "How to get FreeImageLibrary" below)
+
+Additional VS Components:
+- Needs Visual Studio SDK 
+- Needs "C++-MFC for latest vXXX-Buildtools (x86 and x64)" (Where XXX is the platform toolset version like 142 (VS2019) or 143(VS2022))
+
+How to get FreeImageLibrary:
+- Go to https://freeimage.sourceforge.io/download.html
+- Download FreeImage DLL
+- Extract Contents
+- Copy or move extracted .h, .dll and .lib files for your platform to FreeImage folder
+  Example: Move Contents of "...\FreeImage3180Win32Win64\FreeImage\Dist\x64\" to "...\PointCloudImageMapping\cpp\FreeImg\"
+
+Additional Information:
+- For necessary Tools to code for Rhino on Windows please also visit: https://developer.rhino3d.com/guides/cpp/installing-tools-windows/ 
+- For a step by step manual how to setup a visual studio solution like this see:
+- https://discourse.mcneel.com/t/step-by-step-example-for-adding-c-dll-to-a-python-script/126074 
+  (Thanks to Terry_Chappell for this greatguide with examples)
