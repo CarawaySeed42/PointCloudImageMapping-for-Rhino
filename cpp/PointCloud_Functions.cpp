@@ -113,7 +113,7 @@ void PointCloud_Functions::fillCloudFromSubset(ON_PointCloud* pCloudSource, ON_P
 		if (nullptr == outPCHidden) { pCloudTarget->Destroy(); throw std::bad_alloc{}; }
 	}
 
-	// Copy Points if true at "to copy index", This loop with lots of conditions makes nicer looking code but probably worse performance
+	// Copy Points if true at "to copy index" (MSVC22 should unswitch this loop)
 	unsigned int counter = 0;
 	for (int i = 0; i < num_pcPoints; ++i) {
 
