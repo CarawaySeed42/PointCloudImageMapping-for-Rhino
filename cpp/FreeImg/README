@@ -1,0 +1,5 @@
+
+Copy or move extracted .h, .dll and .lib files for your platform to this folder
+Example: Move Contents of "...\FreeImage3180Win32Win64\FreeImage\Dist\x64\" to "...\PointCloudImageMapping\cpp\FreeImg\"
+
+FOr more information please refer to Build_Requirements.txt
