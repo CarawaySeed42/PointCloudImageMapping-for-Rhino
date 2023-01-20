@@ -13,6 +13,7 @@ Due to this project being just for fun, there was no emphasis on clean code
 - Place the geometry where you want your image to be projected to
 - Run "...\python\main\mapImageToPointCloud.py"
 - Choose your mapping geometry and your point cloud
+- Select a image from your file system (e.g. image.png)
 - Choose from different mapping settings (Colored, Greyscale or raise cloud by value)
 - Enter a image width and the depth of the mapped image
 - Done
@@ -46,7 +47,7 @@ Thanks to Terry_Chappell for this great guide with examples
 
 ## Example
 
-![Unmapped_image](https://user-images.githubusercontent.com/112782924/213671459-f07e4974-8cb5-4918-a879-1186568ba4f5.png)
+![Unmapped_image](https://user-images.githubusercontent.com/112782924/213671459-f07e4974-8cb5-4918-a879-1186568ba4f5.png)<br>
 ![Mapped_Image](https://user-images.githubusercontent.com/112782924/213671214-38c89a56-ae2c-4ee1-9fe0-05b7e17267c3.png)
 
-Left: Raw Point Cloud with target geometry - Right: Mapped a free wallpaper to the point cloud
+Top: Raw Point Cloud with target geometry<br>Bottom: Mapping a free wallpaper to the point cloud with target geometry still visible in the middle
