@@ -73,9 +73,13 @@ def createBrandingGeometry():
     
     rs.SetUserText(finalGuid, "Image Mapping Geometry", True, attach_to_geometry=False)
     
-    # Dont know if this does anything
+    # Being the geometry to front for better visibility
     obj = doc.Objects.Find(finalGuid)
-    obj.Attributes.DisplayOrder = 1
+    rs.UnselectAllObjects()
+    rs.SelectObjects(finalGuid)
+    patch = rs.Command("-_BringToFront _enter", echo = False)
+    rs.UnselectObjects(finalGuid)
+    #obj.Attributes.DisplayOrder = 1
 
 
 if __name__ == "__main__":
