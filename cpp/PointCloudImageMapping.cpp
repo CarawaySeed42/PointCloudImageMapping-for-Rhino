@@ -25,12 +25,17 @@
 //using namespace std;
 
 float defaultArgFloat = -999.0;
-
-DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPoly, LPCWSTR fileWideString, double width, double depth = 0.2, bool colorMapping = true, bool greyscale = false, bool raised = false, double raiseValue = 0.02, float& td = defaultArgFloat) {
+// bool colorMapping = true, bool greyscale = false, bool raised = false
+DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPoly, LPCWSTR fileWideString, double width, double depth = 0.2, unsigned char mappingSettings = 4, double raiseValue = 0.02, float& td = defaultArgFloat) {
 	
 	// Convert LPCWSTR to const char*
 	_bstr_t b(fileWideString);
 	const char* fileString = b;
+
+	// Decode settings
+	bool colorMapping	= (mappingSettings >> 2) & 1;
+	bool greyscale		= (mappingSettings >> 1) & 1;
+	bool raised			= mappingSettings & 1;
 
 	// Sanitize input
 	if (width < 0)	{ width = abs(width); }

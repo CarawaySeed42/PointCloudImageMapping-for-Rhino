@@ -35,6 +35,10 @@ def UnloadLibrary(loaded_dll, forceUnload = False):
                             If False then trigger unload once. If it was loaded more than once then the dll is still referenced
     
     Returns True if library was loaded before unloading, False if not and should always return false if unloading is forced
+    
+    Credits: Thanks to the user 'pullmyteeth' who provided this code to a stackoverflow topic:
+             https://stackoverflow.com/questions/359498/how-can-i-unload-a-dll-using-ctypes-in-python
+             https://github.com/bwoodsend/cslug/blob/db3f50273e887250d001673981163d25913e247a/cslug/_stdlib.py
     """
     import sys
     import ctypes

@@ -6,7 +6,7 @@ import Rhino as rc
 from Rhino.Geometry import PointCloud
 from scriptcontext import doc
 import scriptcontext
-from ctypes import c_bool, c_float, byref, cdll, c_double, c_char_p, wintypes
+from ctypes import c_bool, c_float, byref, cdll, c_double, c_char_p, wintypes, c_ubyte
 from Rhino.Runtime import Interop
 import System.Windows.Forms as winForms
 import traceback
@@ -42,6 +42,14 @@ def ListBoxBranding():
     else:
         return 1
 
+def EncodeMappingSettings(colorMapping, greyscale, raised):
+    
+    mappingSetting = int(colorMapping)
+    mappingSetting = (mappingSetting << 1) | greyscale
+    mappingSetting = (mappingSetting << 1) | raised
+    
+    return mappingSetting
+    
 def pointCloudImageMap():
     pcImgMapLib = LibLoad.load_CloudImageMap_Lib()
     
@@ -113,6 +121,9 @@ def pointCloudImageMap():
                 print("Geometry is no Image Mapping Geometry!")
                 continue
             
+            # Encode settings
+            mappingSettings = EncodeMappingSettings(colorMapping, greyscale, raised)
+            
             #CTypes
             pcPointer = Interop.NativeGeometryNonConstPointer(cloudGeo)
             polyGeo = rs.coercegeometry(poly)
@@ -122,16 +133,14 @@ def pointCloudImageMap():
             c_FilePath = wintypes.LPCWSTR(r"{}".format(imagePath))
             c_imageWidth = c_double(imageWidth)
             c_imageDepth = c_double(imageDepth)
-            c_colorMapping = c_bool(colorMapping)
-            c_greyscale = c_bool(greyscale)
-            c_raised = c_bool(raised)
+            c_mappingSettings = c_ubyte(mappingSettings)
             c_raiseValue = c_double(raiseValue)
             ctd = (c_float)()
             
             c_success = c_bool(False)
             
-            c_success = pcImgMapLib.PointCloudImageMapping(pcPointer, polyPointer, c_FilePath, c_imageWidth, c_imageDepth, c_colorMapping, c_greyscale, \
-            c_raised, c_raiseValue, byref(ctd))
+            c_success = pcImgMapLib.PointCloudImageMapping(pcPointer, polyPointer, c_FilePath, c_imageWidth, c_imageDepth, \
+                                                           c_mappingSettings, c_raiseValue, byref(ctd))
             
             if not c_success:
                 continue
