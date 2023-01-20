@@ -37,7 +37,7 @@ Additional VS Components:
 How to get FreeImageLibrary:
 - [Download FreeImage DLL](https://freeimage.sourceforge.io/download.html)
 - Extract Contents
-- Copy or move extracted .h, .dll and .lib files for your platform to FreeImage folder
+- Copy or move extracted .h, .dll and .lib files for your platform to FreeImage folder<br>
   Example: Move Contents of "...\FreeImage3180Win32Win64\FreeImage\Dist\x64\" to "...\PointCloudImageMapping\cpp\FreeImg\"
 
 Additional Information:
