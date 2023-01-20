@@ -51,7 +51,7 @@ void PointCloud_Functions::createPointOnlyCloud(ON_PointCloud* pCloudSource, ON_
 	pCloudTarget->m_P.SetCapacity(pointsToCopyCount);
 	ON_3dPoint* outPCPoints = pCloudTarget->m_P.Array();
 
-	// Copy Points if true at "to copy index", This loop with lots of conditions makes nicer looking code but probably worse performance
+	// Copy Points if true at "to copy index"
 	unsigned int counter = 0;
 	for (int i = 0; i < num_pcPoints; ++i) {
 
