@@ -142,6 +142,7 @@ copy /Y "$(SolutionDir)FreeImg\FreeImage.dll" "$(SolutionDir)..\bin\FreeImage.dl
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/d2Zi+  /Qpar-report:1 /Qvec-report:1 %(AdditionalOptions)</AdditionalOptions>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

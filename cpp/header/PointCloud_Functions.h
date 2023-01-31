@@ -1,12 +1,15 @@
 #pragma once
+// A class containing static methods applicable to ON_PointCloud objects
 class PointCloud_Functions
 {
 
 public:
-	static bool GetPointCloudNormals(ON_PointCloud* pCloud, const bool createIfNotExist, ON_3dVector*& pcNormals);
-	static void PointsInPoly(ON_PointCloud* pCloud, const ON_3dPointArray& polyPointArray, bool* isPoinInPoly);
-	static void createPointOnlyCloud(ON_PointCloud* pCloudSource, ON_PointCloud* pCloudTarget, const bool* pointsToCopy, const int pointsToCopyCount);
-	static void fillCloudFromSubset(ON_PointCloud* pCloudSource, ON_PointCloud* pCloudTarget, const bool* pointsToCopy, const int pointsToCopyCount);
+	static bool GetPointCloudNormals	(ON_PointCloud* pCloud, const bool createIfNotExist, ON_3dVector*& pcNormals);
+	static void PointsInPoly			(ON_PointCloud* pCloud, const ON_3dPointArray& polyPointArray, bool* isPoinInPoly);
+	static void CreatePointOnlyCloud	(const ON_PointCloud* pCloudSource, ON_PointCloud* pCloudTarget, const bool* pointsToCopy, const int pointsToCopyCount);
+	static void Pointsin3DBBox			(const ON_PointCloud* pCloudSource, ON_PointCloud* pCloudTarget, const bool* pointsToCopy, const int pointsToCopyCount);
+	static void DistanceTo2DPoint		(const ON_PointCloud* pCloud, const ON_2dPoint mainPoint, ON_2dVectorArray& outVectorArray);
+	static void DistanceTo3DPoint		(const ON_PointCloud* pCloud, const ON_3dPoint mainPoint, ON_3dVectorArray& outVectorArray);
 
 	static inline void TranslateCloud(ON_PointCloud*& pCloud, const double transVec[3]) {
 
@@ -56,8 +59,8 @@ public:
 	/// The resulting double is an identical byte to byte representation of said 64-bit Integer.
 	/// If the cloud already has saved colors then nothing will be safed except if forceOverwrite is set.
 	/// </summary>
-	/// <param name="pcColor :             (Ref) Color which should be encoded into pcNormal."></param>
-	/// <param name="pcNormal :         (Ref) The point cloud normal which the colors should be encoded into. Is also output of this function"></param>
+	/// <param name="pcColor :        (Ref) Color which should be encoded into pcNormal."></param>
+	/// <param name="pcNormal :       (Ref) The point cloud normal which the colors should be encoded into. Is also output of this function"></param>
 	/// <param name="forceOverwrite : Should colors always be saved instead of only when the backup didn't exist?"></param>
 	static inline void SaveOriginalPCColors(const ON_Color& pcColor, ON_3dVector& pcNormal, const bool& forceOverwrite)
 	{

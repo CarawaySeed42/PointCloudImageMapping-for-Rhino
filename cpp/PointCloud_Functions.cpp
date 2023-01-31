@@ -39,13 +39,12 @@ void PointCloud_Functions::PointsInPoly(ON_PointCloud* pCloud, const ON_3dPointA
 	}
 }
 
-void PointCloud_Functions::createPointOnlyCloud(ON_PointCloud* pCloudSource, ON_PointCloud* pCloudTarget, const bool* pointsToCopy, const int pointsToCopyCount) {
+void PointCloud_Functions::CreatePointOnlyCloud(const ON_PointCloud* pCloudSource, ON_PointCloud* pCloudTarget, const bool* pointsToCopy, const int pointsToCopyCount) {
 
 	const size_t num_pcPoints = pCloudSource->PointCount();
 
 	// Input Cloud Points content
-	ON_3dPoint* pcPoints = pCloudSource->m_P.Array();
-
+	const ON_3dPoint* pcPoints = pCloudSource->m_P.Array();
 
 	// Initialize Output
 	pCloudTarget->m_P.SetCapacity(pointsToCopyCount);
@@ -64,3 +63,33 @@ void PointCloud_Functions::createPointOnlyCloud(ON_PointCloud* pCloudSource, ON_
 	// Set Count of points for output
 	pCloudTarget->m_P.SetCount(pointsToCopyCount);
 }
+
+void PointCloud_Functions::DistanceTo2DPoint(const ON_PointCloud* pCloud, const ON_2dPoint mainPoint, ON_2dVectorArray& outVectorArray)
+{
+	const size_t pcCount = pCloud->PointCount();
+	const ON_3dPoint* pcPoints = pCloud->m_P.Array();
+	outVectorArray.SetCapacity(pcCount);
+	outVectorArray.SetCount(pcCount);
+
+	for (size_t i = 0; i < pcCount; ++i)
+	{
+		outVectorArray[i].x = pcPoints[i].x - mainPoint.x;
+		outVectorArray[i].y = pcPoints[i].y - mainPoint.y;
+	}
+}
+
+void PointCloud_Functions::DistanceTo3DPoint(const ON_PointCloud* pCloud, const ON_3dPoint mainPoint, ON_3dVectorArray& outVectorArray)
+{
+	const size_t pcCount = pCloud->PointCount();
+	const ON_3dPoint* pcPoints = pCloud->m_P.Array();
+	outVectorArray.SetCapacity(pcCount);
+	outVectorArray.SetCount(pcCount);
+
+	for (size_t i = 0; i < pcCount; ++i)
+	{
+		outVectorArray[i].x = pcPoints[i].x - mainPoint.x;
+		outVectorArray[i].y = pcPoints[i].y - mainPoint.y;
+		outVectorArray[i].z = pcPoints[i].z - mainPoint.z;
+	}
+}
+

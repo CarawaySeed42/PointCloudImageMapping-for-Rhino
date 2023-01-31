@@ -2,6 +2,7 @@
 #include <chrono>
 #include <math.h>
 #include <comdef.h>
+#include <omp.h>
 #include "FreeImage.h"
 #include "Array2D.h"
 #include "ImageWrapper.h"
@@ -22,12 +23,31 @@
 // For Rhino C++ examples see:
 // https://developer.rhino3d.com/guides/cpp/
 //
-//using namespace std;
+
+// Choose the approach here. Distance based calculates the point colors through distance from image corner. 
+// RTree creates an RTree and searches through the pixel grid
+// Distance based is multi threaded, RTree Approach is not
+#define DistanceBasedApproach 1
+#define RTreeApproach 0
 
 float defaultArgFloat = -999.0;
-// bool colorMapping = true, bool greyscale = false, bool raised = false
+/// <summary>
+/// Map image to a point cloud with specified witdth. Height will be determined from aspect ratio.
+/// </summary>
+/// <param name="pCloud"></param>
+/// <param name="orientPoly"></param>
+/// <param name="fileWideString"></param>
+/// <param name="width"></param>
+/// <param name="depth"></param>
+/// <param name="mappingSettings"></param>
+/// <param name="raiseValue"></param>
+/// <param name="td"></param>
+/// <returns>success: True if successful, False if error encountered</returns>
 DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPoly, LPCWSTR fileWideString, double width, double depth = 0.2, unsigned char mappingSettings = 4, double raiseValue = 0.02, float& td = defaultArgFloat) {
 	
+	// Set maximum number of treads
+	int maxThreadCount = 8;
+
 	// Convert LPCWSTR to const char*
 	_bstr_t b(fileWideString);
 	const char* fileString = b;
@@ -56,6 +76,8 @@ DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPol
 	double alphaWeightImage = 1;							// Alpha fraction to weight color with. Is 1 if no transparencies
 	double alphaWeightPCPoint = 0;							// Fraction of the original Cloud Point that goes into the new color (0 if image fully opaque)
 	double greyValueScale = 1;								// Grey Value used for height sclaing during height mapping
+	
+
 	RGBQUAD mapColor;										// Current Pixel Color for point mapping
 	ON_Color* pColor;										// Pointer to the current Point Cloud Point's Color, which a new color is assigned to
 	size_t pcPointIndex;									// Index to the current Point that should be raised
@@ -69,15 +91,20 @@ DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPol
 	RhinoProgress::PromptMessage("Loading Image...");
 	RhinoApp().Print("Loading Image: %s\n", fileString);
 	ImageWrapper image(fileString);
+
 	if (!image.ImageLoaded()) { RhinoApp().Print("Image: %s could not be loaded\n", fileString);  return false; }
 	if (!image.IsValid())	{ RhinoApp().Print("Data form image is not valid to be processed!\n", fileString);  return false; }
+
+	const size_t imageWidth = image.ImgWidth();				// Width of image in Pixels
+	const size_t imageHeight = image.ImgHeight();			// Height of image in Pixels
 
 	// Get image height in Rhino units and get transparency status
 	height = width / image.AspectRatio(); 
 	isImageTransparent = image.IsTransparent();
 
-	// Get starting time.
-	time0 = std::chrono::steady_clock::now();
+	// Image Corner from origin and the size of each pixel in Rhino units 
+	const double lowerLeftCord[2] = { -width / 2, -height / 2 };
+	const double distancePerPixel = width / imageWidth;
 
 	// Point Cloud Preparation
 	const int32_t pcCount = pCloud->PointCount();
@@ -106,7 +133,7 @@ DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPol
 	Orientation_Geometry orientGeo(orientPoly);
 
 	// PreCut Point Cloud with poly
-	RhinoProgress::PromptMessage("Cutting Point Cloud...");
+	RhinoProgress::PromptMessage("Cut Point Cloud outside image plane...");
 	std::unique_ptr<bool[]>  inPolyBool(new bool[pCloud->PointCount()]);
 	
 	ON_3dPointArray cutGeo;
@@ -119,9 +146,9 @@ DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPol
 	if (pointInPolyCount == 0) { RhinoApp().Print("There are no point cloud points in image area! Cancelling!\n", fileString);  return false; }
 
 	ON_PointCloud partialCloud;
-	PointCloud_Functions::createPointOnlyCloud(pCloud, &partialCloud, inPolyBool.get(), pointInPolyCount);
+	PointCloud_Functions::CreatePointOnlyCloud(pCloud, &partialCloud, inPolyBool.get(), pointInPolyCount);
 	
-	// Get Indices of Points in Poly in original Cloud and then free bool array because not needed anymore
+	// Get Indices of Points in Poly in original Cloud and then free bool array because it is not needed anymore
 	std::vector<size_t> origIndexVector;
 	Index_Functions::BoolArrayToIndexArray(inPolyBool.get(), pCloud->PointCount(), origIndexVector);
 	inPolyBool.reset();
@@ -135,32 +162,33 @@ DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPol
 	orientGeo.CreateXFormToWorldAxisAlign(worldAxisAlignXForm);
 	partialCloud.Transform(worldAxisAlignXForm);
 
+	// Vector to raise the point cloud if raising is set
+	ON_3dVector raiseVector = orientGeo.GetRaisingVector(raiseValue);
+
+
+
+#if RTreeApproach
+
 	// Cut the partial cloud by Bounding Box to have only points left that will be colored
-	ON_3dPoint pointMin	(-width / 2, -height / 2, -depth/2);
-	ON_3dPoint pointMax	( width / 2,  height / 2,  depth/2);
-	
+	ON_3dPoint pointMin(-width / 2, -height / 2, -depth / 2);
+	ON_3dPoint pointMax(width / 2, height / 2, depth / 2);
+
 	// Insert Points into RTree
 	RhinoApp().Print("Create RTree for pixel mapping...\n");
 	ON_RTree rTree;
 	size_t rTreeCount = RTree_Functions::InsertPointCloudinBBIntoRTree(rTree, &partialCloud, pointMin, pointMax, origIndexVector, true);
 
 	RhinoApp().Print("RTree contains %d Points!\n", rTreeCount);
-	partialCloud.~ON_PointCloud();	// Call destructor of partial cloud
 
 	// If no points in tree then return, otherwise reserve count entries for our unordered_set
 	if (rTreeCount == 0) { return false; }
 	processedIndices.reserve(rTreeCount);
 
-	// Map Pixels to Points
-	const double lowerLeftCord[2] = { -width / 2, -height / 2 };
-	const double distancePerPixel = width / image.ImgWidth();
+	partialCloud.~ON_PointCloud();	// Call destructor of partial cloud
+
+	/* The Mapping loop... */
 	double a_min[2] = { 0,0 };
 	double a_max[2] = { 0,0 };
-
-	// Vector to raise the point cloud if raising is set
-	ON_3dVector raiseVector = orientGeo.GetRaisingVector(raiseValue);
-
-	// The Mapping loop...
 	const size_t progInterval = (image.ImgWidth() / 20) + 1; // Prompt Progress Interval, Standard is every 5% of columns
 
 	for (size_t i = 0; i < image.ImgWidth(); ++i)
@@ -174,9 +202,6 @@ DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPol
 		
 		for (size_t j = 0; j < image.ImgHeight(); ++j)
 		{
-			a_min[1] = lowerLeftCord[1] + j * distancePerPixel;
-			a_max[1] = lowerLeftCord[1] + (j + 1) * distancePerPixel;
-
 			// Current Pixel Color
 			mapColor = image.pixelArray[i][j];
 
@@ -194,6 +219,8 @@ DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPol
 			results.m_fids.resize(0);
 			
 			// Search all points that the pixels color will be assigned to
+			a_min[1] = lowerLeftCord[1] + j * distancePerPixel;
+			a_max[1] = lowerLeftCord[1] + (j + 1) * distancePerPixel;
 			rTree.Search2d(a_min, a_max, pcRTreeSearchResult::resultCallback, &results);
 			
 			// Assign new color if colored argument was true
@@ -230,6 +257,90 @@ DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPol
 			}
 		}
 	}
+
+#elif DistanceBasedApproach
+
+	// Get distance to every point from lower left corner and x,y scale distances to pixels and normalize z with half depth to later exclude points to high or too low ralative to image plane
+	ON_3dVectorArray distanceToLowerLeft;
+	{
+		ON_3dPoint mainPoint(lowerLeftCord);
+		PointCloud_Functions::DistanceTo3DPoint(&partialCloud, mainPoint, distanceToLowerLeft);
+
+		double pixelPerDistance = 1 / distancePerPixel;
+		ON_Xform pixelScaler = ON_Xform::DiagonalTransformation(pixelPerDistance, pixelPerDistance, 2 / depth);
+		distanceToLowerLeft.Transform(pixelScaler);
+	}
+
+	partialCloud.~ON_PointCloud();	// Call destructor of partial cloud
+
+	/* The Mapping loop... */
+	int widthIndex = 0;
+	int heightIndex = 0;
+	size_t iterationCount = distanceToLowerLeft.Count();
+	const size_t progInterval = (iterationCount / 20) + 1; // Prompt Progress Interval, Standard is every 5% of columns
+
+	int threadChunksize = (iterationCount / maxThreadCount) + 1;
+	omp_set_num_threads(maxThreadCount);
+
+#pragma omp parallel for schedule(static, threadChunksize) private(widthIndex, heightIndex, mapColor, pColor, greyValueScale, pcPointIndex) firstprivate(alphaWeightImage, alphaWeightPCPoint)
+	for (int i = 0; i < iterationCount; ++i)
+	{
+		if (i % progInterval == 0) {
+			RhinoProgress::PromptProgress("Map image to Point Cloud Colors...", i, iterationCount);
+		}
+
+		widthIndex = static_cast<int>(distanceToLowerLeft[i].x);
+		heightIndex = static_cast<int>(distanceToLowerLeft[i].y);
+
+		// Skip if index out of bounds or point higher or lower than depth
+		if (widthIndex >= imageWidth || heightIndex > imageHeight) { continue; }
+		if (std::abs(distanceToLowerLeft[i].z) > 1) { continue; }
+
+		// Current Pixel Color
+		mapColor = image.pixelArray[widthIndex][heightIndex];
+
+		// Check if we have to scale the color with its' transparency
+		if (isImageTransparent) {
+			if (mapColor.rgbReserved == 0) {				// If Pixel is fully transparent then there is no color to map and we can go to the next pixel
+				continue;
+			}
+
+			alphaWeightImage = static_cast<double>(mapColor.rgbReserved) / 255.0; // Weight pixel color with alpha (0 means transparency here, 255 is opaque)
+			alphaWeightPCPoint = 1.0 - alphaWeightImage;						  // The difference to full weight will be given to the original pc point color
+		}
+
+		// Point Index in Cloud
+		pcPointIndex = origIndexVector[i];
+
+		// Assign new color if colored argument was true
+		if (colorMapping)
+		{
+			// Turn Greyscale if necessary
+			if (greyscale) { ImageWrapper::RGBQUADToGreyscale(mapColor); }
+
+			pColor = &pcColors[pcPointIndex];
+			*pColor = ON_Color(static_cast<int>(mapColor.rgbRed * alphaWeightImage + alphaWeightPCPoint * pColor->Red()), \
+				static_cast<int>(mapColor.rgbGreen * alphaWeightImage + alphaWeightPCPoint * pColor->Green()), \
+				static_cast<int>(mapColor.rgbBlue * alphaWeightImage + alphaWeightPCPoint * pColor->Blue()));
+		}
+
+		// Raise cloud point by specified value if raised argument was true
+		if (raised)
+		{
+			// Get Greyscale in any case. Raising will be done with greyscale value and alpha value
+			greyValueScale = (ImageWrapper::RGBQUADToGreyscaleDouble(mapColor) / 255.0) * alphaWeightImage;
+
+			// Shift point if it has not been shifted before. This might happen if point is on pixel boundary. Insert index into set to keep track of processed points
+			if (processedIndices.find(pcPointIndex) == processedIndices.end()) {
+
+				Point_Functions::Translate3DPoint(pcPoints[pcPointIndex], raiseVector, greyValueScale);
+#pragma omp critical
+				processedIndices.insert(pcPointIndex);
+			}
+		}
+	}
+
+#endif
 	
 	time1 = std::chrono::steady_clock::now();
 	td = 1e-6f * std::chrono::duration_cast<std::chrono::microseconds> (time1 - time0).count();
