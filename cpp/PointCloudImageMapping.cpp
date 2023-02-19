@@ -116,18 +116,6 @@ DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPol
 	}
 	pcColors = pCloud->m_C.Array();
 	if (nullptr == pcColors) { pCloud->Destroy(); RhinoApp().Print("Could not allocate Point Cloud Colors! Cancel Operation\n"); return false; }
-
-	// Get or create Cloud Normals and then save old colors
-	if (saveOldColors)
-	{
-		hasNormals = PointCloud_Functions::GetPointCloudNormals(pCloud, true, pcNormals);
-		if (hasNormals)
-		{
-			for (size_t i = 0; i < pcCount; ++i) {
-				PointCloud_Functions::SaveOriginalPCColors(pcColors[i], pcNormals[i], false);
-			}
-		}
-	}
 	
 	// Set Orientation Properties from orientatation poly argument
 	Orientation_Geometry orientGeo(orientPoly);
