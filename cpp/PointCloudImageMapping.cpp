@@ -264,16 +264,15 @@ DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPol
 	/* The Mapping loop... */
 	int widthIndex = 0;
 	int heightIndex = 0;
-	size_t iterationCount = distanceToLowerLeft.Count();
-	const size_t progInterval = (iterationCount / 20) + 1; // Prompt Progress Interval, Standard is every 5% of columns
+	int iterationCount = distanceToLowerLeft.Count();
 
-	int threadChunksize = (iterationCount / maxThreadCount) + 1;
+	int threadChunksize = (iterationCount / (maxThreadCount*20)) + 1;
 	omp_set_num_threads(maxThreadCount);
 
-#pragma omp parallel for schedule(static, threadChunksize) private(widthIndex, heightIndex, mapColor, pColor, greyValueScale, pcPointIndex) firstprivate(alphaWeightImage, alphaWeightPCPoint)
+#pragma omp parallel for schedule(dynamic, threadChunksize) private(widthIndex, heightIndex, mapColor, pColor, greyValueScale, pcPointIndex) firstprivate(alphaWeightImage, alphaWeightPCPoint)
 	for (int i = 0; i < iterationCount; ++i)
 	{
-		if (i % progInterval == 0) {
+		if (omp_get_thread_num() == 0 && i % threadChunksize == 0) {
 			RhinoProgress::PromptProgress("Map image to Point Cloud Colors...", i, iterationCount);
 		}
 
