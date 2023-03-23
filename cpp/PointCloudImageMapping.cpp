@@ -316,14 +316,8 @@ DLLEXPORT bool PointCloudImageMapping(ON_PointCloud* pCloud, ON_Curve* orientPol
 		{
 			// Get Greyscale in any case. Raising will be done with greyscale value and alpha value
 			greyValueScale = (ImageWrapper::RGBQUADToGreyscaleDouble(mapColor) / 255.0) * alphaWeightImage;
-
-			// Shift point if it has not been shifted before. This might happen if point is on pixel boundary. Insert index into set to keep track of processed points
-			if (processedIndices.find(pcPointIndex) == processedIndices.end()) {
-
-				Point_Functions::Translate3DPoint(pcPoints[pcPointIndex], raiseVector, greyValueScale);
-#pragma omp critical
-				processedIndices.insert(pcPointIndex);
-			}
+			Point_Functions::Translate3DPoint(pcPoints[pcPointIndex], raiseVector, greyValueScale);
+			
 		}
 	}
 
